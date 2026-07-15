@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermo — temperature converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#000000;
+    --panel:#111214;
+    --ink:#F2F1EC;
+    --ink-soft:#8B9490;
+    --teal:#2FBF9F;
+    --teal-deep:#1F8F76;
+    --line:#2A2C2F;
+    --heat:#E8564B;
+    --cold:#4FA8E8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:#0B0714;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:40px 20px;
+    font-family:'IBM Plex Sans', sans-serif;
+    color:var(--ink);
+  }
+  .device{
+    width:100%;
+    max-width:620px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:18px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.55), 0 2px 0 rgba(255,255,255,0.02) inset;
+    transition:box-shadow .3s ease, transform .3s ease;
+  }
+  .device:hover{
+    box-shadow:0 28px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(47,191,159,0.15);
+  }
+  .device-header{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    padding:22px 28px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .device-header .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .device-header h1{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:20px;
+    font-weight:600;
+    margin:4px 0 0;
+    color:var(--teal-deep);
+  }
+  .device-header .serial{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+  .body-grid{
+    display:grid;
+    grid-template-columns:120px 1fr;
+    gap:32px;
+    padding:32px 28px 28px;
+  }
+  @media (max-width:480px){
+    .body-grid{grid-template-columns:1fr; }
+    .gauge-col{justify-self:center;}
+  }
+  .gauge-col{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:10px;
+  }
+  .gauge-col .gauge-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .controls{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  fieldset{
+    border:none;
+    margin:0;
+    padding:0;
+  }
+  legend{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin-bottom:8px;
+  }
+  .unit-toggle{
+    display:flex;
+    gap:0;
+    border:1px solid var(--teal);
+    border-radius:12px;
+    overflow:hidden;
+    width:fit-content;
+    box-shadow:0 4px 14px rgba(0,0,0,0.35);
+  }
+  .unit-toggle input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+  }
+  .unit-toggle label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:500;
+    padding:9px 20px;
+    cursor:pointer;
+    color:var(--teal);
+    background:transparent;
+    transition:background .25s ease, color .25s ease, transform .15s ease;
+    user-select:none;
+  }
+  .unit-toggle label:not(:last-child){
+    border-right:1px solid var(--teal);
+  }
+  .unit-toggle label:hover{
+    background:rgba(47,191,159,0.12);
+  }
+  .unit-toggle label:active{
+    transform:scale(0.97);
+  }
+  .unit-toggle input:checked + label{
+    background:var(--teal);
+    color:#08110F;
+  }
+  .value-input{
+    width:100%;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:28px;
+    font-weight:500;
+    color:var(--ink);
+    background:#000000;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 16px;
+    outline:none;
+    transition:border-color .25s ease, box-shadow .25s ease;
+  }
+  .value-input:hover{
+    border-color:var(--ink-soft);
+  }
+  .value-input:focus{
+    border-color:var(--teal);
+    box-shadow:0 0 0 3px rgba(47,191,159,0.18);
+  }
+  .value-input::placeholder{
+    color:#5A5F5C;
+    font-weight:400;
+  }
+  button.convert{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:#08110F;
+    background:var(--teal);
+    border:none;
+    border-radius:12px;
+    padding:14px 20px;
+    cursor:pointer;
+    box-shadow:0 6px 20px rgba(47,191,159,0.28);
+    transition:background .25s ease, box-shadow .25s ease, transform .15s ease;
+  }
+  button.convert:hover{
+    background:var(--teal-deep);
+    box-shadow:0 10px 26px rgba(47,191,159,0.38);
+    transform:translateY(-2px);
+  }
+  button.convert:active{
+    transform:translateY(0px) scale(0.98);
+    box-shadow:0 4px 12px rgba(47,191,159,0.25);
+  }
+  .readout{
+    border-top:1px solid var(--line);
+    margin-top:4px;
+    padding:18px 18px 18px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:rgba(255,255,255,0.02);
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    min-height:64px;
+    transition:border-color .25s ease, background .25s ease;
+  }
+  .readout:hover{
+    border-color:var(--teal);
+    background:rgba(47,191,159,0.05);
+  }
+  .readout .readout-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+  .readout .readout-value{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:34px;
+    font-weight:600;
+    color:var(--teal-deep);
+  }
+  .readout .readout-value .unit{
+    font-size:18px;
+    color:var(--ink-soft);
+    margin-left:2px;
+  }
+  .error-text{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--heat);
+  }
+</style>
+</head>
+<body>
+
+<div class="device">
+  <div class="device-header">
+    <div>
+      <div class="eyebrow">Field instrument</div>
+      <h1>Thermo converter</h1>
+    </div>
+    <div class="serial">MODEL TC&#8209;01</div>
+  </div>
+
+  <div class="body-grid">
+    <div class="gauge-col">
+      <span class="gauge-label">Reading</span>
+      <svg id="gauge" width="60" height="200" viewBox="0 0 60 200">
+        <rect x="24" y="10" width="12" height="150" rx="6" fill="none" stroke="#8B9490" stroke-width="1.5"/>
+        <circle cx="30" cy="175" r="16" fill="none" stroke="#8B9490" stroke-width="1.5"/>
+        <rect id="mercury-col" x="26.5" y="140" width="7" height="20" rx="3.5" fill="#4FA8E8" style="transition:y .25s ease, height .25s ease, fill .25s ease;"/>
+        <circle id="mercury-bulb" cx="30" cy="175" r="12" fill="#4FA8E8" style="transition:fill .25s ease;"/>
+        <line x1="40" y1="30" x2="46" y2="30" stroke="#5A655F" stroke-width="1"/>
+        <line x1="40" y1="70" x2="46" y2="70" stroke="#5A655F" stroke-width="1"/>
+        <line x1="40" y1="110" x2="46" y2="110" stroke="#5A655F" stroke-width="1"/>
+        <line x1="40" y1="150" x2="46" y2="150" stroke="#5A655F" stroke-width="1"/>
+      </svg>
+    </div>
+
+    <div class="controls">
+      <div>
+        <fieldset>
+          <legend>Input value</legend>
+          <input class="value-input" type="number" id="tempInput" placeholder="Enter temperature" step="any">
+        </fieldset>
+      </div>
+
+      <fieldset>
+        <legend>Input unit</legend>
+        <div class="unit-toggle">
+          <input type="radio" name="unit" id="unitC" value="C" checked>
+          <label for="unitC">&deg;C</label>
+          <input type="radio" name="unit" id="unitF" value="F">
+          <label for="unitF">&deg;F</label>
+        </div>
+      </fieldset>
+
+      <button class="convert" id="convertBtn">Convert</button>
+
+      <div class="readout">
+        <span class="readout-label">Result</span>
+        <span class="readout-value" id="resultOut">&mdash;</span>
+      </div>
+      <div class="error-text" id="errorOut"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('tempInput');
+  const convertBtn = document.getElementById('convertBtn');
+  const resultOut = document.getElementById('resultOut');
+  const errorOut = document.getElementById('errorOut');
+  const mercuryCol = document.getElementById('mercury-col');
+  const mercuryBulb = document.getElementById('mercury-bulb');
+
+  function updateGauge(celsiusValue){
+    const clamped = Math.max(-40, Math.min(100, celsiusValue));
+    const ratio = (clamped + 40) / 140;
+    const maxHeight = 150;
+    const h = 20 + ratio * (maxHeight - 20);
+    const y = 160 - h;
+    mercuryCol.setAttribute('y', y);
+    mercuryCol.setAttribute('height', h);
+
+    let color;
+    if (clamped <= 0) color = '#4FA8E8';
+    else if (clamped >= 38) color = '#E8564B';
+    else {
+      const t = clamped / 38;
+      const r = Math.round(0x4F + t * (0xE8 - 0x4F));
+      const g = Math.round(0xA8 + t * (0x56 - 0xA8));
+      const b = Math.round(0xE8 + t * (0x4B - 0xE8));
+      color = `rgb(${r},${g},${b})`;
+    }
+    mercuryCol.setAttribute('fill', color);
+    mercuryBulb.setAttribute('fill', color);
+  }
+
+  function currentUnit(){
+    return document.querySelector('input[name="unit"]:checked').value;
+  }
+
+  function toCelsius(value, unit){
+    return unit === 'F' ? (value - 32) * 5 / 9 : value;
+  }
+
+  function handleLiveGauge(){
+    const raw = parseFloat(input.value);
+    if (!isNaN(raw)){
+      updateGauge(toCelsius(raw, currentUnit()));
+    }
+  }
+
+  function convert(){
+    const raw = input.value.trim();
+    if (raw === '' || isNaN(parseFloat(raw))){
+      errorOut.textContent = 'Enter a numeric temperature to convert.';
+      resultOut.innerHTML = '&mdash;';
+      return;
+    }
+    errorOut.textContent = '';
+    const value = parseFloat(raw);
+    const unit = currentUnit();
+    let converted, outUnit;
+    if (unit === 'C'){
+      converted = (value * 9/5) + 32;
+      outUnit = '&deg;F';
+    } else {
+      converted = (value - 32) * 5/9;
+      outUnit = '&deg;C';
+    }
+    converted = Math.round(converted * 100) / 100;
+    resultOut.innerHTML = converted + '<span class="unit">' + outUnit + '</span>';
+    updateGauge(toCelsius(value, unit));
+  }
+
+  input.addEventListener('input', handleLiveGauge);
+  document.querySelectorAll('input[name="unit"]').forEach(r => r.addEventListener('change', handleLiveGauge));
+  convertBtn.addEventListener('click', convert);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') convert(); });
+</script>
+
+</body>
+</html>
